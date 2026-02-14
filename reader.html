@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Manga Reader Pro v31</title>
+    <title>Manga Reader Pro v32</title>
     <style>
         :root { --accent: #e50914; --bg: #000; --panel: #141414; }
         body { margin: 0; background: var(--bg); color: white; font-family: sans-serif; overflow-x: hidden; }
         
-        /* GECE MODU CSS (Tüm içeriğe etki eder) */
-        body.night-mode #reader-container { filter: grayscale(1) contrast(1.2); }
+        /* GECE MODU - Kesin Çözüm */
+        body.night-mode img { filter: grayscale(1) contrast(1.1) !important; }
         
         #header { position: fixed; top: 0; left: 0; width: 100%; height: 50px; background: rgba(0,0,0,0.95); display: flex; justify-content: center; align-items: center; gap: 10px; z-index: 1000; transform: translateY(-100%); transition: 0.3s; border-bottom: 1px solid #333; }
         #header.active { transform: translateY(0); }
@@ -19,21 +19,14 @@
         #side-panel.active { transform: translateX(0); }
         #side-trigger { position: fixed; left: 0; top: 0; width: 25px; height: 100%; z-index: 1000; }
         
-        #reader-container { text-align: center; min-height: 100vh; padding-top: 5px; transition: 0.3s; }
+        #reader-container { text-align: center; min-height: 100vh; padding-top: 5px; }
         #mangaImage { display: inline-block; transition: 0.2s; }
         
         .mode-single #mangaImage { max-height: 98vh; max-width: 98vw; object-fit: contain; }
+        .mode-wide #mangaImage { width: 98% !important; max-width: 1450px !important; height: auto !important; margin: 0 auto; }
         
-        /* DENGELİ GENİŞLİK */
-        .mode-wide #mangaImage { 
-            width: 98% !important; 
-            max-width: 1400px !important; 
-            height: auto !important; 
-            margin: 0 auto; 
-        }
-        
-        .mode-webtoon img { display: block; width: 100%; max-width: 850px; margin: 0 auto; }
-        .has-gap img { margin-bottom: 15px; }
+        #webtoon-images img { display: block; width: 100%; max-width: 850px; margin: 0 auto; }
+        .has-gap img { margin-bottom: 20px; }
 
         .btn { padding: 12px; background: #222; border: 1px solid #444; color: #aaa; cursor: pointer; border-radius: 6px; font-weight: bold; text-align: left; border: none; }
         .btn.selected { background: var(--accent); color: white; box-shadow: 0 0 10px var(--accent); }
@@ -145,13 +138,26 @@
         }
 
         function setMode(mode) {
+            // WEBTOON'DAN MANGAYA GEÇERKEN SAYFAYI BUL
+            if (currentMode === 'mode-webtoon' && mode !== 'mode-webtoon') {
+                const imgs = document.querySelectorAll("#webtoon-images img");
+                for (let i = 0; i < imgs.length; i++) {
+                    if (imgs[i].getBoundingClientRect().top > -100) {
+                        currentPage = i + 1;
+                        break;
+                    }
+                }
+            }
+
             currentMode = mode;
             document.getElementById("reader-container").className = mode + (document.getElementById("gapToggle").checked ? " has-gap" : "");
             document.querySelectorAll('.btn').forEach(b => b.classList.remove('selected'));
             document.getElementById('btn-' + mode.split('-')[1]).classList.add('selected');
+            
             const wBox = document.getElementById("webtoon-images");
             const img = document.getElementById("mangaImage");
             wBox.innerHTML = "";
+            
             if(mode === 'mode-webtoon') {
                 img.style.display = "none";
                 for(let i=1; i<=totalPages; i++) {
@@ -161,24 +167,14 @@
                     wImg.src = base + "_clean.jpg";
                     wImg.onerror = () => { wImg.src = base + ".jpg"; wImg.onerror = null; };
                     wBox.appendChild(wImg);
-                    if(i === currentPage) setTimeout(() => wImg.scrollIntoView(), 150);
+                    if(i === currentPage) setTimeout(() => wImg.scrollIntoView(), 100);
                 }
-            } else { img.style.display = "inline-block"; updateDisplay(); }
-        }
-
-        function showAlert(msg) {
-            const box = document.getElementById("alert-box");
-            box.innerText = msg; box.style.display = "block";
-            setTimeout(() => box.style.display = "none", 2000);
-        }
-
-        function nextChapter() {
-            if (foundChaps.includes(currentChap + 1)) {
-                currentChap++; currentPage = 1; save(); location.reload();
+            } else { 
+                img.style.display = "inline-block"; 
+                updateDisplay(); 
             }
         }
 
-        // GECE MODU TETİKLEYİCİSİ (Düzeltildi)
         function toggleNight() {
             document.getElementById("main-body").classList.toggle("night-mode");
         }
@@ -192,7 +188,6 @@
             if(e.target.closest("#header") || e.target.closest("#side-panel") || currentMode === 'mode-webtoon') return;
             if(e.clientX > window.innerWidth / 2) {
                 if(currentPage < totalPages) { currentPage++; updateDisplay(); }
-                else if (foundChaps.includes(currentChap + 1)) { showAlert("Bölüm bitti! Üstteki butona tıkla."); }
             } else { if(currentPage > 1) { currentPage--; updateDisplay(); } }
         });
 
@@ -200,6 +195,7 @@
         document.getElementById("header").onmouseleave = () => document.getElementById("header").classList.remove("active");
         document.getElementById("side-trigger").onmouseenter = () => document.getElementById("side-panel").classList.add("active");
         document.getElementById("side-panel").onmouseleave = () => document.getElementById("side-panel").classList.remove("active");
+        
         init();
     </script>
 </body>
