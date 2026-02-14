@@ -6,7 +6,7 @@
     <title>Manga Reader Pro</title>
     <style>
         :root { --accent: #e50914; }
-        body { margin: 0; background: #000; color: white; font-family: sans-serif; overflow-x: hidden; }
+        body { margin: 0; background: #000; color: white; font-family: sans-serif; overflow-x: hidden; scroll-behavior: smooth; }
 
         /* Üst Bar */
         #header {
@@ -29,38 +29,24 @@
         #side-panel.active { transform: translateX(0); }
         #side-trigger { position: fixed; left: 0; top: 0; width: 25px; height: 100%; z-index: 1000; }
 
-        /* OKUYUCU ALANI - ANA YAPI */
-        #reader-container { 
-            display: block !important; /* Flex'i tamamen devre dışı bıraktık */
-            width: 100%; 
-            margin: 0 auto;
-            text-align: center;
-        }
+        /* Okuyucu Alanı */
+        #reader-container { display: block !important; width: 100%; text-align: center; }
         
-        /* Tek Sayfa Modları */
-        .mode-single img, .mode-wide img { 
-            display: inline-block; 
-            margin: 0 auto;
-        }
-        .mode-single img { max-height: 100vh; max-width: 100vw; object-fit: contain; }
-        .mode-wide img { max-width: 100%; height: auto; }
+        .mode-single img { max-height: 100vh; max-width: 100vw; object-fit: contain; display: inline-block; }
+        .mode-wide img { max-width: 100%; height: auto; display: inline-block; }
         
-        /* WEBTOON MODU - ZORUNLU ALT ALTA */
         .mode-webtoon img { 
-            display: block !important; /* Yan yana gelmesini engeller */
+            display: block !important; 
             width: 100% !important; 
             max-width: 800px !important; 
             height: auto !important;
-            margin: 0 auto !important; /* Ortalar */
-            padding: 0 !important;
-            border: none !important;
+            margin: 0 auto !important;
         }
 
         .btn { padding: 10px; background: var(--accent); border: none; color: white; cursor: pointer; border-radius: 4px; font-weight: bold; }
         .btn:hover { background: #b20710; }
-        .panel-label { font-size: 11px; color: #888; text-transform: uppercase; }
-        select { background: #333; color: white; border: 1px solid #555; padding: 5px; }
         .hidden { display: none !important; }
+        select { background: #333; color: white; border: 1px solid #555; padding: 5px; }
     </style>
 </head>
 <body>
@@ -100,7 +86,6 @@
         const select = document.getElementById("pageSelect");
         const pageSelectorArea = document.getElementById("pageSelectorArea");
 
-        // Sayfa Listesi
         for (let i = 1; i <= totalPages; i++) {
             let opt = document.createElement("option");
             opt.value = i; opt.innerHTML = i;
@@ -128,20 +113,43 @@
         }
 
         function setMode(mode) {
+            // Webtoon modundan çıkarken hangi sayfada olduğumuzu anla
+            if (currentMode === 'mode-webtoon' && mode !== 'mode-webtoon') {
+                const images = webtoonBox.querySelectorAll('img');
+                let foundPage = 1;
+                for (let i = 0; i < images.length; i++) {
+                    if (images[i].getBoundingClientRect().top >= -200) {
+                        foundPage = i + 1;
+                        break;
+                    }
+                }
+                currentPage = foundPage;
+            }
+
             currentMode = mode;
             document.getElementById("reader-container").className = mode;
-            webtoonBox.innerHTML = "";
             
             if (mode === 'mode-webtoon') {
                 img.classList.add("hidden");
                 pageSelectorArea.classList.add("hidden");
-                document.getElementById("mangaTitle").innerText = mangaName.toUpperCase() + " (Webtoon)";
+                webtoonBox.innerHTML = "";
                 
-                // Tüm sayfaları alt alta yükle
+                let loadedCount = 0;
                 for (let i = 1; i <= totalPages; i++) {
                     let wImg = document.createElement("img");
+                    wImg.id = "webpage-" + i;
                     loadImg(i, wImg);
                     webtoonBox.appendChild(wImg);
+                    
+                    // Geçişte mevcut sayfaya kaydır
+                    wImg.onload = () => {
+                        loadedCount++;
+                        if (i === currentPage) {
+                            setTimeout(() => {
+                                wImg.scrollIntoView();
+                            }, 100);
+                        }
+                    };
                 }
             } else {
                 img.classList.remove("hidden");
@@ -152,20 +160,13 @@
 
         function sayfayaGit(n) { currentPage = parseInt(n); updateDisplay(); }
 
-        // Tıklama & Klavye
         document.addEventListener("click", (e) => {
             if (e.target.closest("#header") || e.target.closest("#side-panel") || currentMode === 'mode-webtoon') return;
             if (e.clientX > window.innerWidth / 2) { if (currentPage < totalPages) { currentPage++; updateDisplay(); } }
             else { if (currentPage > 1) { currentPage--; updateDisplay(); } }
         });
 
-        document.addEventListener("keydown", (e) => {
-            if (currentMode === 'mode-webtoon') return;
-            if (e.key === "ArrowRight") { if (currentPage < totalPages) { currentPage++; updateDisplay(); } }
-            if (e.key === "ArrowLeft") { if (currentPage > 1) { currentPage--; updateDisplay(); } }
-        });
-
-        // Hover
+        // Hover kontrolleri
         document.getElementById("top-trigger").onmouseenter = () => document.getElementById("header").classList.add("active");
         document.getElementById("header").onmouseleave = () => document.getElementById("header").classList.remove("active");
         document.getElementById("side-trigger").onmouseenter = () => document.getElementById("side-panel").classList.add("active");
