@@ -19,29 +19,39 @@ img {
   max-height: 100%;
 }
 
+/* Üst bar */
 #topbar {
   position: fixed;
   top: 0;
   left: 0;
   width: 100%;
   height: 50px;
-  background: rgba(0,0,0,0.9);
+  background: rgba(0,0,0,0.85);
   color: white;
   display: flex;
   justify-content: center;
   align-items: center;
   font-family: Arial;
   transform: translateY(-100%);
-  transition: transform 0.3s ease;
+  transition: transform 0.25s ease;
+  z-index: 20;
 }
 
-#topbar button {
-  margin-left: 10px;
+/* Mouse'un geleceği gizli alan */
+#trigger {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 50px;
+  z-index: 10;
 }
 </style>
 </head>
 
 <body>
+
+<div id="trigger"></div>
 
 <div id="topbar">
   Sayfa:
@@ -58,8 +68,9 @@ const folder = "manga/manga1/chapter1/";
 const img = document.getElementById("mangaImage");
 const select = document.getElementById("pageSelect");
 const topbar = document.getElementById("topbar");
+const trigger = document.getElementById("trigger");
 
-// Sayfa seçeneklerini oluştur
+// Dropdown oluştur
 for (let i = 1; i <= totalPages; i++) {
   let option = document.createElement("option");
   option.value = i;
@@ -74,15 +85,18 @@ function updateImage() {
   select.value = currentPage;
 }
 
-// Sağ sol tıklama
+// Sağ / sol tıklama
 document.body.addEventListener("click", function(e) {
-  if (e.clientY < 60) return; // üst bar bölgesine tıklamayı ignore et
+
+  // Üst bar alanına tıklamayı ignore et
+  if (e.clientY < 50) return;
 
   if (e.clientX > window.innerWidth / 2) {
     if (currentPage < totalPages) currentPage++;
   } else {
     if (currentPage > 1) currentPage--;
   }
+
   updateImage();
 });
 
@@ -92,13 +106,13 @@ select.addEventListener("change", function() {
   updateImage();
 });
 
-// Sadece üst 10px'e gelince bar çıksın
-document.addEventListener("mousemove", function(e) {
-  if (e.clientY < 10) {
-    topbar.style.transform = "translateY(0)";
-  } else {
-    topbar.style.transform = "translateY(-100%)";
-  }
+// Sadece üst bölgeye gelince bar çıksın
+trigger.addEventListener("mouseenter", function() {
+  topbar.style.transform = "translateY(0)";
+});
+
+trigger.addEventListener("mouseleave", function() {
+  topbar.style.transform = "translateY(-100%)";
 });
 </script>
 
