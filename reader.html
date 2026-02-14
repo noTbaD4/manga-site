@@ -3,141 +3,110 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Manga Okuyucu</title>
+    <title>Manga Reader</title>
     <style>
-        body {
-            margin: 0;
-            background: #000;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            min-height: 100vh;
-            font-family: Arial, sans-serif;
+        body { margin: 0; background: #000; color: white; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; }
+        
+        /* Üst Bar Tasarımı */
+        #header {
+            position: fixed; top: 0; left: 0; width: 100%; height: 60px;
+            background: rgba(0,0,0,0.95); display: flex; justify-content: center;
+            align-items: center; gap: 20px; z-index: 1000;
+            transform: translateY(-100%); transition: transform 0.25s ease-out;
+            border-bottom: 1px solid #e50914;
         }
+        #header.active { transform: translateY(0); }
+        
+        /* Mouse yakalama alanı */
+        #trigger { position: fixed; top: 0; left: 0; width: 100%; height: 35px; z-index: 999; }
 
-        #mangaImage {
-            max-width: 100%;
-            height: auto;
-            display: block;
-            cursor: pointer;
-        }
-
-        /* Üst Menü Barı */
-        #topbar {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 60px;
-            background: rgba(0, 0, 0, 0.9);
-            color: white;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            gap: 15px;
-            z-index: 1000;
-            
-            /* Başta tamamen yukarıda gizli */
-            transform: translateY(-100%);
-            transition: transform 0.2s ease-out;
-            pointer-events: all; /* Tıklanabilir olsun */
-        }
-
-        /* Bu sınıf eklendiğinde bar görünür olacak */
-        #topbar.active {
-            transform: translateY(0);
-        }
-
-        /* Mouse'u yakalayan görünmez alan */
-        #top-trigger {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 40px; /* Bu alanı biraz genişlettik */
-            z-index: 999;
-            background: transparent;
-        }
-
-        select {
-            padding: 5px;
-            background: #333;
-            color: white;
-            border: 1px solid #555;
-        }
+        /* Manga Sayfası */
+        #mangaImage { max-width: 100%; height: auto; display: block; cursor: pointer; user-select: none; }
+        
+        select { background: #333; color: white; border: 1px solid #666; padding: 5px 10px; border-radius: 4px; }
+        .btn { padding: 5px 15px; background: #e50914; border: none; color: white; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        .btn:hover { background: #b20710; }
+        #mangaTitle { font-weight: bold; min-width: 100px; text-align: center; }
     </style>
 </head>
 <body>
 
-    <div id="top-trigger"></div>
-
-    <div id="topbar">
-        <span id="mangaTitleDisplay">Manga</span>
+    <div id="trigger"></div>
+    
+    <div id="header">
+        <button class="btn" onclick="window.location.href='index.html'">Geri</button>
+        <div id="mangaTitle">Yükleniyor...</div>
         <div>
-            Sayfa: <select id="pageSelect"></select> / <span id="totalDisplay">20</span>
+            Sayfa: <select id="pageSelect" onchange="sayfayaGit(this.value)"></select>
         </div>
     </div>
 
-    <img id="mangaImage" src="">
+    <img id="mangaImage" src="" alt="Resim Yükleniyor veya Bulunamadı...">
 
     <script>
-        const params = new URLSearchParams(window.location.search);
-        const mangaName = params.get('manga') || "manga1"; 
-        
+        // --- AYARLAR ---
+        const urlParams = new URLSearchParams(window.location.search);
+        const mangaName = urlParams.get('manga') || "manga1";
+        const chapter = "chapter1"; // Şimdilik sabit, ileride dinamik yapılabilir
+        const totalPages = 20; // Bölümdeki toplam sayfa sayısı
+        const ext = ".jpg"; // Dosya uzantın
+
         let currentPage = 1;
-        const totalPages = 20; 
-        const folderPath = `manga/${mangaName}/chapter1/`;
+        const img = document.getElementById("mangaImage");
+        const header = document.getElementById("header");
+        const trigger = document.getElementById("trigger");
+        const select = document.getElementById("pageSelect");
 
-        const imgElement = document.getElementById("mangaImage");
-        const selectElement = document.getElementById("pageSelect");
-        const topbar = document.getElementById("topbar");
-        const trigger = document.getElementById("top-trigger");
-
-        // Sayfa listesini oluştur
+        // 1. Dropdown (Sayfa Listesi) Oluştur
         for (let i = 1; i <= totalPages; i++) {
             let opt = document.createElement("option");
             opt.value = i;
-            opt.text = i;
-            selectElement.appendChild(opt);
+            opt.innerHTML = i;
+            select.appendChild(opt);
         }
 
-        function updatePage() {
+        // 2. Akıllı Sayfa Güncelleme (Clean veya Normal)
+        function updateDisplay() {
             let pageNum = currentPage.toString().padStart(2, '0');
-            imgElement.src = `${folderPath}${pageNum}_clean.jpg`;
-            selectElement.value = currentPage;
+            let basePath = `manga/${mangaName}/${chapter}/${pageNum}`;
+            
+            let cleanUrl = `${basePath}_clean${ext}`;
+            let normalUrl = `${basePath}${ext}`;
+
+            // Önce _clean olanı dene
+            let testImg = new Image();
+            testImg.onload = function() { img.src = cleanUrl; }; // Varsa clean yükle
+            testImg.onerror = function() { img.src = normalUrl; }; // Yoksa normal yükle
+            testImg.src = cleanUrl;
+
+            select.value = currentPage;
             window.scrollTo(0, 0);
+            document.getElementById("mangaTitle").innerText = mangaName.toUpperCase() + " - " + currentPage;
         }
 
-        // Tıklama ile sayfa geçişi
-        document.addEventListener("click", function(e) {
-            if (e.target.closest('#topbar')) return;
+        function sayfayaGit(n) {
+            currentPage = parseInt(n);
+            updateDisplay();
+        }
+
+        // 3. Sağ/Sol Tıklama Kontrolü
+        document.addEventListener("click", (e) => {
+            if (e.target.closest("#header")) return; // Üst bara tıklayınca sayfa değişmesin
+
             if (e.clientX > window.innerWidth / 2) {
                 if (currentPage < totalPages) currentPage++;
             } else {
                 if (currentPage > 1) currentPage--;
             }
-            updatePage();
+            updateDisplay();
         });
 
-        selectElement.addEventListener("change", function() {
-            currentPage = parseInt(this.value);
-            updatePage();
-        });
+        // 4. Üst Bar Açılış/Kapanış Kontrolü
+        trigger.addEventListener("mouseenter", () => header.classList.add("active"));
+        header.addEventListener("mouseleave", () => header.classList.remove("active"));
 
-        // --- TİTREME ENGELLEYİCİ MANTIK ---
-        
-        // Mouse tetikleyici alana girince aç
-        trigger.addEventListener("mouseenter", () => {
-            topbar.classList.add("active");
-        });
-
-        // Mouse barın üzerinden çıkınca kapat
-        topbar.addEventListener("mouseleave", () => {
-            topbar.classList.remove("active");
-        });
-
-        // Sayfa ilk açıldığında göster
-        updatePage();
+        // İlk sayfayı yükle
+        updateDisplay();
     </script>
 </body>
 </html>
