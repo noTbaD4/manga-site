@@ -8,10 +8,10 @@
         :root { --accent: #e50914; }
         body { margin: 0; background: #000; color: white; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; overflow-x: hidden; }
 
-        /* Üst Bar (Sayfa Bilgisi) */
+        /* Üst Bar */
         #header {
             position: fixed; top: 0; left: 0; width: 100%; height: 50px;
-            background: rgba(0,0,0,0.8); display: flex; justify-content: center;
+            background: rgba(0,0,0,0.85); display: flex; justify-content: center;
             align-items: center; gap: 20px; z-index: 1000;
             transform: translateY(-100%); transition: 0.3s;
         }
@@ -20,30 +20,40 @@
 
         /* Sol Ayar Paneli */
         #side-panel {
-            position: fixed; left: 0; top: 0; width: 200px; height: 100%;
-            background: rgba(20, 20, 20, 0.95); z-index: 1001;
+            position: fixed; left: 0; top: 0; width: 220px; height: 100%;
+            background: rgba(15, 15, 15, 0.98); z-index: 1001;
             transform: translateX(-100%); transition: 0.3s;
             display: flex; flex-direction: column; padding: 60px 20px; gap: 20px;
-            border-right: 1px solid var(--accent);
+            border-right: 2px solid var(--accent);
         }
         #side-panel.active { transform: translateX(0); }
-        #side-trigger { position: fixed; left: 0; top: 0; width: 20px; height: 100%; z-index: 1000; }
+        #side-trigger { position: fixed; left: 0; top: 0; width: 25px; height: 100%; z-index: 1000; }
 
-        /* Okuma Modları */
+        /* Okuyucu Konteyner */
         #reader-container { display: flex; flex-direction: column; align-items: center; width: 100%; }
         
-        /* Mod 1: Tek Sayfa (Fit Screen) */
+        /* Mod Ayarları */
         .mode-single img { max-height: 100vh; max-width: 100vw; object-fit: contain; }
-        
-        /* Mod 2: Tek Sayfa (Full Width) */
         .mode-wide img { max-width: 100%; height: auto; }
+        
+        /* Webtoon Fix: Alt alta ve tek sütun */
+        .mode-webtoon { display: block !important; width: 100%; text-align: center; }
+        .mode-webtoon img { 
+            display: block; 
+            margin: 0 auto; 
+            max-width: 800px; 
+            width: 100%; 
+            height: auto; 
+            border: none;
+        }
 
-        /* Mod 3: Webtoon (Dikey) */
-        .mode-webtoon img { max-width: 800px; width: 100%; height: auto; margin-bottom: -1px; }
-
-        .btn { padding: 8px; background: var(--accent); border: none; color: white; cursor: pointer; border-radius: 4px; font-size: 13px; }
-        .panel-label { font-size: 12px; color: #888; margin-bottom: -15px; text-transform: uppercase; }
-        select { background: #333; color: white; border: 1px solid #555; padding: 5px; }
+        .btn { padding: 10px; background: var(--accent); border: none; color: white; cursor: pointer; border-radius: 4px; font-weight: bold; transition: 0.2s; }
+        .btn:hover { background: #b20710; }
+        .panel-label { font-size: 12px; color: #888; margin-bottom: -15px; text-transform: uppercase; letter-spacing: 1px; }
+        select { background: #333; color: white; border: 1px solid #555; padding: 5px; border-radius: 4px; }
+        
+        /* Gizleme Sınıfı */
+        .hidden { display: none !important; }
     </style>
 </head>
 <body>
@@ -54,17 +64,19 @@
     <div id="header">
         <button class="btn" onclick="window.location.href='index.html'">Kütüphane</button>
         <div id="mangaTitle">Yükleniyor...</div>
-        <div>Sayfa: <select id="pageSelect" onchange="sayfayaGit(this.value)"></select></div>
+        <div id="pageSelectorArea">
+            Sayfa: <select id="pageSelect" onchange="sayfayaGit(this.value)"></select>
+        </div>
     </div>
 
     <div id="side-panel">
-        <div class="panel-label">Okuma Modu</div>
-        <button class="btn" onclick="setMode('mode-single')">Ekrana Sığdır</button>
+        <div class="panel-label">Görünüm Modu</div>
+        <button class="btn" onclick="setMode('mode-single')">Tam Ekrana Sığdır</button>
         <button class="btn" onclick="setMode('mode-wide')">Genişlik Sığdır</button>
         <button class="btn" onclick="setMode('mode-webtoon')">Webtoon (Dikey)</button>
-        <hr style="width:100%; border:0; border-top:1px solid #333">
-        <div class="panel-label">Navigasyon</div>
-        <p style="font-size:11px; color:#666">Klavye ok tuşlarını veya ekran yanlarını kullanabilirsin.</p>
+        <hr style="width:100%; border:0; border-top:1px solid #333; margin: 10px 0;">
+        <div class="panel-label">Bilgi</div>
+        <p style="font-size:11px; color:#666">Webtoon modunda sayfalar alt alta yüklenir. Diğer modlarda sağ/sol tıklama ile geçiş yapabilirsin.</p>
     </div>
 
     <div id="reader-container" class="mode-single">
@@ -82,6 +94,7 @@
         const img = document.getElementById("mangaImage");
         const webtoonBox = document.getElementById("webtoon-images");
         const select = document.getElementById("pageSelect");
+        const pageSelectorArea = document.getElementById("pageSelectorArea");
 
         // Sayfa Listesi
         for (let i = 1; i <= totalPages; i++) {
@@ -90,7 +103,6 @@
             select.appendChild(opt);
         }
 
-        // AKILLI RESİM ÇEKME (Hamza'nın Clean Sistemi)
         function getImagePath(page) {
             let p = page.toString().padStart(2, '0');
             return `manga/${mangaName}/chapter1/${p}`;
@@ -108,7 +120,7 @@
         }
 
         function updateDisplay() {
-            if (currentMode === 'mode-webtoon') return; // Webtoon modunda tekil güncelleme yok
+            if (currentMode === 'mode-webtoon') return;
             loadSingleImage(currentPage, img);
             select.value = currentPage;
             window.scrollTo(0, 0);
@@ -119,22 +131,27 @@
             currentMode = mode;
             document.getElementById("reader-container").className = mode;
             webtoonBox.innerHTML = "";
-            img.style.display = mode === 'mode-webtoon' ? 'none' : 'block';
-
+            
             if (mode === 'mode-webtoon') {
+                img.classList.add("hidden");
+                pageSelectorArea.classList.add("hidden"); // Sayfa seçiciyi gizle
+                document.getElementById("mangaTitle").innerText = mangaName.toUpperCase() + " (Webtoon)";
+                
                 for (let i = 1; i <= totalPages; i++) {
                     let wImg = document.createElement("img");
                     loadSingleImage(i, wImg);
                     webtoonBox.appendChild(wImg);
                 }
             } else {
+                img.classList.remove("hidden");
+                pageSelectorArea.classList.remove("hidden"); // Sayfa seçiciyi göster
                 updateDisplay();
             }
         }
 
         function sayfayaGit(n) { currentPage = parseInt(n); updateDisplay(); }
 
-        // Tıklama ile sayfa geçişi
+        // Tıklama
         document.addEventListener("click", (e) => {
             if (e.target.closest("#header") || e.target.closest("#side-panel") || currentMode === 'mode-webtoon') return;
             if (e.clientX > window.innerWidth / 2) {
@@ -144,14 +161,14 @@
             }
         });
 
-        // Klavye desteği
+        // Klavye
         document.addEventListener("keydown", (e) => {
             if (currentMode === 'mode-webtoon') return;
             if (e.key === "ArrowRight") { if (currentPage < totalPages) { currentPage++; updateDisplay(); } }
             if (e.key === "ArrowLeft") { if (currentPage > 1) { currentPage--; updateDisplay(); } }
         });
 
-        // Hover Kontrolleri
+        // Hover
         const head = document.getElementById("header");
         const panel = document.getElementById("side-panel");
         
