@@ -55,6 +55,9 @@
             margin: 0; 
             font-size: 1rem; 
             color: #fff;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
     </style>
 </head>
@@ -62,22 +65,38 @@
 
     <div class="container">
         <h1>Manga Arşivi</h1>
-        
-        <div class="grid">
-            <div class="manga-card" onclick="mangaAc('manga1')">
-                <img src="manga/manga1/cover.jpg" alt="Manga 1 Kapak">
-                <div class="info">
-                    <h3>Manga 1</h3>
-                </div>
-            </div>
+        <div class="grid" id="manga-grid">
             </div>
     </div>
 
     <script>
-        function mangaAc(mangaAdi) {
-            // Reader sayfasına manga ismini gönderiyoruz
-            window.location.href = "reader.html?manga=" + mangaAdi;
-        }
+        // Mangaları list.json dosyasından çekiyoruz
+        fetch('list.json')
+            .then(response => response.json())
+            .then(data => {
+                const grid = document.getElementById('manga-grid');
+                data.forEach(manga => {
+                    // Her manga için kart oluştur
+                    const card = document.createElement('div');
+                    card.className = 'manga-card';
+                    card.onclick = () => {
+                        // v22 Reader ile tam uyumlu URL yapısı
+                        window.location.href = `reader.html?manga=${manga.id}&chaps=${manga.bolumler}`;
+                    };
+                    
+                    card.innerHTML = `
+                        <img src="${manga.kapak}" alt="${manga.ad} Kapak">
+                        <div class="info">
+                            <h3>${manga.ad}</h3>
+                        </div>
+                    `;
+                    grid.appendChild(card);
+                });
+            })
+            .catch(error => {
+                console.error('Liste yüklenemedi:', error);
+                document.getElementById('manga-grid').innerHTML = "<p>Manga listesi yüklenirken hata oluştu. list.json dosyasını kontrol et.</p>";
+            });
     </script>
 </body>
 </html>
