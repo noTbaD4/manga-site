@@ -3,13 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Manga Reader Pro v32</title>
+    <title>Manga Reader Pro v33</title>
     <style>
         :root { --accent: #e50914; --bg: #000; --panel: #141414; }
         body { margin: 0; background: var(--bg); color: white; font-family: sans-serif; overflow-x: hidden; }
-        
-        /* GECE MODU - Kesin Çözüm */
-        body.night-mode img { filter: grayscale(1) contrast(1.1) !important; }
         
         #header { position: fixed; top: 0; left: 0; width: 100%; height: 50px; background: rgba(0,0,0,0.95); display: flex; justify-content: center; align-items: center; gap: 10px; z-index: 1000; transform: translateY(-100%); transition: 0.3s; border-bottom: 1px solid #333; }
         #header.active { transform: translateY(0); }
@@ -22,8 +19,16 @@
         #reader-container { text-align: center; min-height: 100vh; padding-top: 5px; }
         #mangaImage { display: inline-block; transition: 0.2s; }
         
+        /* MODLARIN AYARLARI */
         .mode-single #mangaImage { max-height: 98vh; max-width: 98vw; object-fit: contain; }
-        .mode-wide #mangaImage { width: 98% !important; max-width: 1450px !important; height: auto !important; margin: 0 auto; }
+        
+        /* DENGELİ GENİŞLİK AYARI */
+        .mode-wide #mangaImage { 
+            width: 98% !important; 
+            max-width: 1450px !important; 
+            height: auto !important; 
+            margin: 0 auto; 
+        }
         
         #webtoon-images img { display: block; width: 100%; max-width: 850px; margin: 0 auto; }
         .has-gap img { margin-bottom: 20px; }
@@ -36,7 +41,7 @@
         select { background: #333; color: white; border: 1px solid #555; padding: 5px; border-radius: 4px; }
     </style>
 </head>
-<body id="main-body">
+<body>
 
     <div id="top-trigger"></div><div id="side-trigger"></div><div id="alert-box"></div>
 
@@ -52,7 +57,6 @@
         <button id="btn-wide" class="btn" onclick="setMode('mode-wide')">↔️ Genişlik Sığdır</button>
         <button id="btn-webtoon" class="btn" onclick="setMode('mode-webtoon')">📜 Webtoon Modu</button>
         <hr style="border:0; border-top:1px solid #333; width: 100%;">
-        <button class="btn" onclick="toggleNight()">🌓 Gece Modu (S/B)</button>
         <div style="padding: 5px; font-size: 13px; color: #888;">
             <input type="checkbox" id="gapToggle" onchange="toggleGap()"> <label for="gapToggle">Webtoon Boşluk</label>
         </div>
@@ -86,7 +90,6 @@
             const cs = document.getElementById("chapSelect");
             cs.innerHTML = "";
             foundChaps = [];
-
             for(let i=1; i<=100; i++) {
                 const ex = await checkImg(`manga/${mangaName}/chapter${i}/01_clean.jpg`) || await checkImg(`manga/${mangaName}/chapter${i}/01.jpg`);
                 if(ex) {
@@ -95,7 +98,6 @@
                     cs.appendChild(opt);
                 } else if (i > 5) break;
             }
-
             if (!foundChaps.includes(currentChap)) currentChap = foundChaps[0] || 1;
             cs.value = currentChap;
             await loadPages();
@@ -105,7 +107,6 @@
             const ps = document.getElementById("pageSelect");
             ps.innerHTML = "";
             totalPages = 0;
-            
             for(let i=1; i<=150; i++) {
                 let p = i.toString().padStart(2, '0');
                 const base = `manga/${mangaName}/chapter${currentChap}/${p}`;
@@ -125,20 +126,17 @@
             let p = currentPage.toString().padStart(2, '0');
             const base = `manga/${mangaName}/chapter${currentChap}/${p}`;
             const img = document.getElementById("mangaImage");
-            
             img.src = base + "_clean.jpg";
             img.onerror = () => { img.src = base + ".jpg"; img.onerror = () => img.alt = "Hata!"; };
-            
             document.getElementById("pageSelect").value = currentPage;
             window.scrollTo(0,0);
-            
             const hasNext = foundChaps.includes(currentChap + 1);
             document.getElementById("next-header-btn").style.display = (currentPage === totalPages && hasNext) ? "block" : "none";
             save();
         }
 
         function setMode(mode) {
-            // WEBTOON'DAN MANGAYA GEÇERKEN SAYFAYI BUL
+            // SENKRONİZASYON: Webtoon -> Manga geçişi
             if (currentMode === 'mode-webtoon' && mode !== 'mode-webtoon') {
                 const imgs = document.querySelectorAll("#webtoon-images img");
                 for (let i = 0; i < imgs.length; i++) {
@@ -153,7 +151,6 @@
             document.getElementById("reader-container").className = mode + (document.getElementById("gapToggle").checked ? " has-gap" : "");
             document.querySelectorAll('.btn').forEach(b => b.classList.remove('selected'));
             document.getElementById('btn-' + mode.split('-')[1]).classList.add('selected');
-            
             const wBox = document.getElementById("webtoon-images");
             const img = document.getElementById("mangaImage");
             wBox.innerHTML = "";
@@ -175,14 +172,17 @@
             }
         }
 
-        function toggleNight() {
-            document.getElementById("main-body").classList.toggle("night-mode");
-        }
-
         function toggleGap() { setMode(currentMode); }
         function changeChapter(v) { currentChap = parseInt(v); currentPage = 1; loadPages(); }
         function sayfayaGit(v) { currentPage = parseInt(v); updateDisplay(); }
         function save() { localStorage.setItem(`${mangaName}_chap`, currentChap); localStorage.setItem(`${mangaName}_page`, currentPage); }
+        function showAlert(msg) { const box = document.getElementById("alert-box"); box.innerText = msg; box.style.display = "block"; setTimeout(() => box.style.display = "none", 2000); }
+
+        function nextChapter() {
+            if (foundChaps.includes(currentChap + 1)) {
+                currentChap++; currentPage = 1; save(); location.reload();
+            }
+        }
 
         document.addEventListener("click", (e) => {
             if(e.target.closest("#header") || e.target.closest("#side-panel") || currentMode === 'mode-webtoon') return;
@@ -195,7 +195,6 @@
         document.getElementById("header").onmouseleave = () => document.getElementById("header").classList.remove("active");
         document.getElementById("side-trigger").onmouseenter = () => document.getElementById("side-panel").classList.add("active");
         document.getElementById("side-panel").onmouseleave = () => document.getElementById("side-panel").classList.remove("active");
-        
         init();
     </script>
 </body>
