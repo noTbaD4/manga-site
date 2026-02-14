@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manga Arşivi</title>
+    <style>
+        * { box-sizing: border-box; }
+        body { 
+            background: #0f0f0f; 
+            color: white; 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            margin: 0; 
+            padding: 20px;
+        }
+        h1 { 
+            text-align: center; 
+            color: #e50914; 
+            margin-bottom: 30px; 
+            font-size: 2.5rem;
+            text-transform: uppercase;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .grid { 
+            display: grid; 
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); 
+            gap: 20px; 
+        }
+        .manga-card { 
+            background: #1c1c1c; 
+            border-radius: 10px; 
+            overflow: hidden; 
+            cursor: pointer; 
+            transition: all 0.3s ease;
+            border: 1px solid #333;
+        }
+        .manga-card:hover { 
+            transform: scale(1.05); 
+            border-color: #e50914;
+            box-shadow: 0 5px 15px rgba(229, 9, 20, 0.3);
+        }
+        .manga-card img { 
+            width: 100%; 
+            height: 300px; 
+            object-fit: cover; 
+        }
+        .manga-card .info { 
+            padding: 15px; 
+            text-align: center; 
+        }
+        .manga-card h3 { 
+            margin: 0; 
+            font-size: 1rem; 
+            color: #fff;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Manga Arşivi</h1>
+        
+        <div class="grid">
+            <div class="manga-card" onclick="mangaAc('manga1')">
+                <img src="manga/manga1/cover.jpg" alt="Manga 1 Kapak">
+                <div class="info">
+                    <h3>Manga 1</h3>
+                </div>
+            </div>
+            </div>
+    </div>
+
+    <script>
+        function mangaAc(mangaAdi) {
+            // Reader sayfasına manga ismini gönderiyoruz
+            window.location.href = "reader.html?manga=" + mangaAdi;
+        }
+    </script>
+</body>
+</html>
