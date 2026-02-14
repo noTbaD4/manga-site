@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Manga Reader v27</title>
+    <title>Manga Reader v28</title>
     <style>
         :root { --accent: #e50914; --bg: #000; --panel: #141414; }
         body { margin: 0; background: var(--bg); color: white; font-family: sans-serif; overflow-x: hidden; }
@@ -20,7 +20,7 @@
         .btn { padding: 12px; background: #222; border: 1px solid #444; color: #aaa; cursor: pointer; border-radius: 6px; font-weight: bold; }
         .btn.selected { background: var(--accent); color: white; border-color: white; }
         select { background: #333; color: white; border: 1px solid #555; padding: 5px; border-radius: 4px; }
-        #error-msg { color: #ff4444; font-size: 14px; padding: 20px; display: none; }
+        #error-msg { color: #ff4444; font-size: 14px; padding: 20px; display: none; background: #111; }
     </style>
 </head>
 <body>
@@ -34,7 +34,6 @@
         <button id="btn-single" class="btn selected" onclick="setMode('mode-single')">🖥️ Single</button>
         <button id="btn-wide" class="btn" onclick="setMode('mode-wide')">↔️ Wide</button>
         <button id="btn-webtoon" class="btn" onclick="setMode('mode-webtoon')">📜 Webtoon</button>
-        <button class="btn" onclick="toggleNight()">🌓 Gece Modu</button>
     </div>
     <div id="reader-container" class="mode-single">
         <img id="mangaImage" src="" alt="Yükleniyor...">
@@ -45,6 +44,8 @@
     <script>
         const urlParams = new URLSearchParams(window.location.search);
         const mangaName = urlParams.get('manga') || "manga1";
+        
+        // ÖNCE HAFIZADAKİ BÖLÜMÜ AL, AMA VAR MI DİYE KONTROL EDECEĞİZ
         let currentChap = parseInt(localStorage.getItem(`${mangaName}_chap`)) || 1;
         let currentPage = parseInt(localStorage.getItem(`${mangaName}_page`)) || 1;
         let totalPages = 0;
@@ -53,7 +54,6 @@
         const img = document.getElementById("mangaImage");
         const errMsg = document.getElementById("error-msg");
 
-        // Resim var mı yok mu kontrol eden fonksiyon
         async function checkImage(url) {
             return new Promise(res => {
                 const t = new Image();
@@ -64,31 +64,40 @@
         }
 
         async function init() {
-            // 1. Bölüm Listesini Oluştur (Otomatik bulana kadar)
             const cs = document.getElementById("chapSelect");
             cs.innerHTML = "";
-            for(let i=1; i<=50; i++) {
+            let foundChaps = [];
+
+            // 1'den 100'e kadar bölümleri tara
+            for(let i=1; i<=100; i++) {
                 const exists = await checkImage(`manga/${mangaName}/chapter${i}/01_clean.jpg`) || await checkImage(`manga/${mangaName}/chapter${i}/01.jpg`);
                 if(exists) {
+                    foundChaps.push(i);
                     let opt = document.createElement("option"); opt.value = i; opt.innerHTML = i;
                     cs.appendChild(opt);
-                } else break;
+                } else if (i > 10) break; // İlk 10'da hiç yoksa dur
             }
+
+            // EĞER HAFIZADAKİ BÖLÜM (15 gibi) LİSTEDE YOKSA 1. BÖLÜME DÖN
+            if (!foundChaps.includes(currentChap)) {
+                currentChap = foundChaps[0] || 1;
+                currentPage = 1;
+            }
+
             cs.value = currentChap;
             await loadPages();
         }
 
         async function loadPages() {
-            // 2. Sayfa Sayısını Otomatik Bul
             const ps = document.getElementById("pageSelect");
             ps.innerHTML = "";
             totalPages = 0;
+            
             for(let i=1; i<=150; i++) {
                 let p = i.toString().padStart(2, '0');
-                const pathC = `manga/${mangaName}/chapter${currentChap}/${p}_clean.jpg`;
-                const pathN = `manga/${mangaName}/chapter${currentChap}/${p}.jpg`;
+                const base = `manga/${mangaName}/chapter${currentChap}/${p}`;
+                const exists = await checkImage(base + "_clean.jpg") || await checkImage(base + ".jpg");
                 
-                const exists = await checkImage(pathC) || await checkImage(pathN);
                 if(exists) {
                     totalPages = i;
                     let opt = document.createElement("option"); opt.value = i; opt.innerHTML = i;
@@ -110,7 +119,7 @@
                 img.src = base + ".jpg";
                 img.onerror = () => {
                     errMsg.style.display = "block";
-                    errMsg.innerHTML = `Bulunamadı!<br>Denenen: ${base}_clean.jpg<br>Denenen: ${base}.jpg`;
+                    errMsg.innerHTML = `Hata! Klasör bulunamadı veya boş.<br>Denenen: ${base}.jpg`;
                 };
             };
             document.getElementById("pageSelect").value = currentPage;
@@ -141,7 +150,6 @@
         function changeChapter(v) { currentChap = parseInt(v); currentPage = 1; loadPages(); }
         function sayfayaGit(v) { currentPage = parseInt(v); updateDisplay(); }
         function save() { localStorage.setItem(`${mangaName}_chap`, currentChap); localStorage.setItem(`${mangaName}_page`, currentPage); }
-        function toggleNight() { document.getElementById("reader-container").classList.toggle("night-mode"); }
 
         document.addEventListener("click", (e) => {
             if(e.target.closest("#header") || e.target.closest("#side-panel") || currentMode === 'mode-webtoon') return;
