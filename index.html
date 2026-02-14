@@ -5,98 +5,74 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Manga Arşivi</title>
     <style>
+        :root { --accent: #e50914; --bg: #0f0f0f; }
         * { box-sizing: border-box; }
-        body { 
-            background: #0f0f0f; 
-            color: white; 
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
-            margin: 0; 
-            padding: 20px;
-        }
-        h1 { 
-            text-align: center; 
-            color: #e50914; 
-            margin-bottom: 30px; 
-            font-size: 2.5rem;
-            text-transform: uppercase;
-        }
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-        }
+        body { background: var(--bg); color: white; font-family: sans-serif; margin: 0; padding: 20px; }
+        h1 { text-align: center; color: var(--accent); text-transform: uppercase; margin-bottom: 30px; }
         .grid { 
             display: grid; 
-            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); 
-            gap: 20px; 
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); 
+            gap: 20px; max-width: 1200px; margin: 0 auto; 
         }
         .manga-card { 
-            background: #1c1c1c; 
-            border-radius: 10px; 
-            overflow: hidden; 
-            cursor: pointer; 
-            transition: all 0.3s ease;
-            border: 1px solid #333;
+            background: #1c1c1c; border-radius: 10px; overflow: hidden; 
+            cursor: pointer; transition: 0.3s; border: 1px solid #333; text-align: center;
         }
-        .manga-card:hover { 
-            transform: scale(1.05); 
-            border-color: #e50914;
-            box-shadow: 0 5px 15px rgba(229, 9, 20, 0.3);
-        }
-        .manga-card img { 
-            width: 100%; 
-            height: 300px; 
-            object-fit: cover; 
-        }
-        .manga-card .info { 
-            padding: 15px; 
-            text-align: center; 
-        }
-        .manga-card h3 { 
-            margin: 0; 
-            font-size: 1rem; 
-            color: #fff;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
+        .manga-card:hover { transform: scale(1.05); border-color: var(--accent); }
+        .manga-card img { width: 100%; height: 260px; object-fit: cover; background: #222; }
+        .manga-card h3 { font-size: 14px; padding: 10px; margin: 0; }
+        #status { text-align: center; color: #555; margin-top: 20px; }
     </style>
 </head>
 <body>
 
-    <div class="container">
-        <h1>Manga Arşivi</h1>
-        <div class="grid" id="manga-grid">
-            </div>
-    </div>
+    <h1>Manga Arşivi</h1>
+    <div class="grid" id="manga-grid"></div>
+    <div id="status">Mangalar taranıyor...</div>
 
     <script>
-        // Mangaları list.json dosyasından çekiyoruz
-        fetch('list.json')
-            .then(response => response.json())
-            .then(data => {
-                const grid = document.getElementById('manga-grid');
-                data.forEach(manga => {
-                    // Her manga için kart oluştur
+        // Buraya manga klasör isimlerini manuel yazman gerekebilir 
+        // Çünkü GitHub klasör listelemeye (ls) izin vermez.
+        // Ama bir kere yazarsın, JSON ile falan uğraşmazsın.
+        const mangalar = ["kanan_sama", "tomodachi_game", "manga1"]; 
+
+        const grid = document.getElementById('manga-grid');
+        const status = document.getElementById('status');
+
+        async function checkManga(id) {
+            const coverPath = `manga/${id}/cover.jpg`;
+            const testImg = new Image();
+            return new Promise(res => {
+                testImg.onload = () => res(true);
+                testImg.onerror = () => res(false);
+                testImg.src = coverPath;
+            });
+        }
+
+        async function listele() {
+            grid.innerHTML = "";
+            let found = 0;
+
+            for (const id of mangalar) {
+                const hasManga = await checkManga(id);
+                if (hasManga) {
+                    found++;
                     const card = document.createElement('div');
                     card.className = 'manga-card';
-                    card.onclick = () => {
-                        // v22 Reader ile tam uyumlu URL yapısı
-                        window.location.href = `reader.html?manga=${manga.id}&chaps=${manga.bolumler}`;
-                    };
+                    // Reader'a sadece manga adını yolluyoruz, gerisini o hallediyor
+                    card.onclick = () => window.location.href = `reader.html?manga=${id}`;
                     
                     card.innerHTML = `
-                        <img src="${manga.kapak}" alt="${manga.ad} Kapak">
-                        <div class="info">
-                            <h3>${manga.ad}</h3>
-                        </div>
+                        <img src="manga/${id}/cover.jpg" alt="${id}">
+                        <div class="info"><h3>${id.replace('_', ' ').toUpperCase()}</h3></div>
                     `;
                     grid.appendChild(card);
-                });
-            })
-            .catch(error => {
-                console.error('Liste yüklenemedi:', error);
-                document.getElementById('manga-grid').innerHTML = "<p>Manga listesi yüklenirken hata oluştu. list.json dosyasını kontrol et.</p>";
-            });
+                }
+            }
+            status.innerHTML = found > 0 ? "" : "Hiç manga bulunamadı. Klasörleri ve cover.jpg dosyalarını kontrol et.";
+        }
+
+        listele();
     </script>
 </body>
 </html>
