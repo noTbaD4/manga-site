@@ -1,96 +1,75 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta charset="UTF-8">
-<title>Reader</title>
+  <meta charset="UTF-8">
+  <title>Manga Reader</title>
+  <style>
+    body {
+      margin: 0;
+      background: black;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
 
-<style>
-body{
-margin:0;
-background:black;
-display:flex;
-justify-content:center;
-align-items:center;
-height:100vh;
-overflow:hidden;
-}
-img{
-max-width:100vw;
-max-height:100vh;
-}
-#topBar{
-position:fixed;
-top:-60px;
-left:50%;
-transform:translateX(-50%);
-background:rgba(0,0,0,0.8);
-color:white;
-padding:10px 20px;
-border-radius:10px;
-transition:0.3s;
-}
-body:hover #topBar{
-top:10px;
-}
-</style>
+    img {
+      max-height: 100%;
+      max-width: 100%;
+    }
+
+    #topbar {
+      position: fixed;
+      top: -50px;
+      left: 0;
+      width: 100%;
+      height: 50px;
+      background: rgba(0,0,0,0.8);
+      color: white;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      transition: top 0.3s;
+      font-family: Arial;
+    }
+
+    body:hover #topbar {
+      top: 0;
+    }
+  </style>
 </head>
 <body>
 
-<div id="topBar">
-<span id="pageInfo"></span>
+<div id="topbar">
+  Sayfa: <span id="pageNumber">1</span> / 20
 </div>
 
-<img id="mangaImage">
+<img id="mangaImage" src="manga/manga1/chapter1/01_clean.jpg">
 
 <script>
-const params = new URLSearchParams(window.location.search);
-const manga = params.get("manga");
-
 let currentPage = 1;
-let totalPages = 20; // BURAYA gerçek sayfa sayını yaz
+const totalPages = 20;
 
-const img = document.getElementById("mangaImage");
-const pageInfo = document.getElementById("pageInfo");
-
-function loadPage(page){
-if(page < 1 || page > totalPages) return;
-
-currentPage = page;
-
-let pageName = page.toString().padStart(2,'0') + "_clean.jpg";
-
-img.src = "manga/" + manga + "/chapter1/" + pageName;
-
-pageInfo.textContent = "Sayfa " + currentPage + " / " + totalPages;
-
-localStorage.setItem(manga,currentPage);
+function updateImage() {
+  let page = currentPage.toString().padStart(2, '0');
+  document.getElementById("mangaImage").src =
+    "manga/manga1/chapter1/" + page + "_clean.jpg";
+  document.getElementById("pageNumber").innerText = currentPage;
 }
 
-function next(){
-loadPage(currentPage+1);
-}
-
-function prev(){
-loadPage(currentPage-1);
-}
-
-document.body.addEventListener("click",function(e){
-if(e.clientX > window.innerWidth/2){
-next();
-}else{
-prev();
-}
+document.body.addEventListener("click", function(e) {
+  if (e.clientX > window.innerWidth / 2) {
+    if (currentPage < totalPages) {
+      currentPage++;
+      updateImage();
+    }
+  } else {
+    if (currentPage > 1) {
+      currentPage--;
+      updateImage();
+    }
+  }
 });
-
-document.addEventListener("keydown",function(e){
-if(e.key==="ArrowRight") next();
-if(e.key==="ArrowLeft") prev();
-});
-
-let saved = localStorage.getItem(manga);
-if(saved) currentPage=parseInt(saved);
-
-loadPage(currentPage);
 </script>
 
 </body>
