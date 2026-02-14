@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Manga Reader Pro v4</title>
+    <title>Manga Reader Pro v5</title>
     <style>
         :root { --accent: #e50914; }
         body { margin: 0; background: #000; color: white; font-family: sans-serif; overflow-x: hidden; }
@@ -73,14 +73,8 @@
             let pathNormal = `manga/${mangaName}/chapter1/${p}.jpg`;
             
             let t = new Image();
-            t.onload = () => { 
-                target.src = pathClean; 
-                if(callback) callback();
-            };
-            t.onerror = () => { 
-                target.src = pathNormal; 
-                if(callback) callback();
-            };
+            t.onload = () => { target.src = pathClean; if(callback) callback(); };
+            t.onerror = () => { target.src = pathNormal; if(callback) callback(); };
             t.src = pathClean;
         }
 
@@ -88,18 +82,18 @@
             if (currentMode === 'mode-webtoon') return;
             loadImg(currentPage, img);
             select.value = currentPage;
-            window.scrollTo(0, 0);
+            window.scrollTo(0, 0); // Sayfayı sıfırla
             document.getElementById("mangaTitle").innerText = mangaName.toUpperCase() + " - " + currentPage;
         }
 
         function setMode(mode) {
-            // WEBTOON'DAN ÇIKARKEN: Ekranın en tepesindeki resmi bul
+            // Webtoon'dan Normal moda geçerken pozisyonu yakala
             if (currentMode === 'mode-webtoon' && mode !== 'mode-webtoon') {
                 const images = webtoonBox.querySelectorAll('img');
                 for (let i = 0; i < images.length; i++) {
                     const rect = images[i].getBoundingClientRect();
-                    // Üst sınıra en yakın resmi yakala
-                    if (rect.bottom > 50) {
+                    // Ekranın üst yarısında olan ilk resmi bul
+                    if (rect.top > -300 && rect.top < window.innerHeight / 2) {
                         currentPage = i + 1;
                         break;
                     }
@@ -109,21 +103,18 @@
             currentMode = mode;
             document.getElementById("reader-container").className = mode;
             
+            // HER MOD DEĞİŞİKLİĞİNDE TEMİZLİK YAP
+            webtoonBox.innerHTML = ""; 
+
             if (mode === 'mode-webtoon') {
                 img.classList.add("hidden");
                 document.getElementById("pageSelectorArea").classList.add("hidden");
-                webtoonBox.innerHTML = "";
                 
-                let targetScrollY = 0;
-
                 for (let i = 1; i <= totalPages; i++) {
                     let wImg = document.createElement("img");
                     wImg.id = "webpage-" + i;
-                    
-                    // Resimler yüklendikçe kontrol et
                     loadImg(i, wImg, () => {
                         if (i === currentPage) {
-                            // Işınlanma
                             wImg.scrollIntoView({ behavior: "auto", block: "start" });
                         }
                     });
@@ -145,7 +136,7 @@
             else { if (currentPage > 1) { currentPage--; updateDisplay(); } }
         });
 
-        // Hover kontrolleri
+        // Hover
         document.getElementById("top-trigger").onmouseenter = () => document.getElementById("header").classList.add("active");
         document.getElementById("header").onmouseleave = () => document.getElementById("header").classList.remove("active");
         document.getElementById("side-trigger").onmouseenter = () => document.getElementById("side-panel").classList.add("active");
