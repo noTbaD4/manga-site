@@ -3,15 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Manga Reader Pro v35</title>
+    <title>Manga Reader Pro v36</title>
     <style>
         :root { --accent: #e50914; --bg: #000; --panel: #141414; }
-        
-        /* MAVİ SEÇİLMEYİ ENGELLE */
-        body { 
-            margin: 0; background: var(--bg); color: white; font-family: sans-serif; overflow-x: hidden;
-            -webkit-user-select: none; user-select: none;
-        }
+        body { margin: 0; background: var(--bg); color: white; font-family: sans-serif; overflow-x: hidden; -webkit-user-select: none; user-select: none; }
         
         #header { position: fixed; top: 0; left: 0; width: 100%; height: 50px; background: rgba(0,0,0,0.95); display: flex; justify-content: center; align-items: center; gap: 10px; z-index: 1000; transform: translateY(-100%); transition: 0.3s; border-bottom: 1px solid #333; }
         #header.active { transform: translateY(0); }
@@ -22,21 +17,19 @@
         #side-trigger { position: fixed; left: 0; top: 0; width: 25px; height: 100%; z-index: 1000; }
         
         #reader-container { text-align: center; min-height: 100vh; padding-top: 5px; }
-        #mangaImage { display: inline-block; transition: 0.2s; } 
+        #mangaImage { display: inline-block; transition: 0.2s; }
         
         .mode-single #mangaImage { max-height: 98vh; max-width: 98vw; object-fit: contain; }
         .mode-wide #mangaImage { width: 98% !important; max-width: 1450px !important; height: auto !important; margin: 0 auto; }
         
         #webtoon-images img { display: block; width: 100%; max-width: 850px; margin: 0 auto; }
-        
-        /* BOŞLUK AYARI CSS */
         .has-gap #webtoon-images img { margin-bottom: 25px !important; }
 
         .btn { padding: 12px; background: #222; border: 1px solid #444; color: #aaa; cursor: pointer; border-radius: 6px; font-weight: bold; text-align: left; border: none; }
         .btn.selected { background: var(--accent); color: white; box-shadow: 0 0 10px var(--accent); }
         
-        #alert-box { position: fixed; bottom: 20px; right: 20px; background: #222; padding: 12px 20px; border-radius: 8px; border-left: 5px solid var(--accent); display: none; z-index: 2000; }
-        #next-header-btn { background: var(--accent); color: white; padding: 5px 12px; border-radius: 4px; cursor: pointer; display: none; font-weight: bold; }
+        #alert-box { position: fixed; bottom: 30px; right: 30px; background: #1a1a1a; color: white; padding: 15px 25px; border-radius: 8px; border-left: 6px solid var(--accent); display: none; z-index: 2000; box-shadow: 0 10px 30px rgba(0,0,0,0.8); font-weight: bold; }
+        #next-header-btn { background: var(--accent); color: white; padding: 5px 12px; border-radius: 4px; cursor: pointer; display: none; font-weight: bold; font-size: 13px; }
         select { background: #333; color: white; border: 1px solid #555; padding: 5px; border-radius: 4px; }
     </style>
 </head>
@@ -120,8 +113,11 @@
             img.onerror = () => { img.src = base + ".jpg"; img.onerror = null; };
             document.getElementById("pageSelect").value = currentPage;
             window.scrollTo(0,0);
+            
+            // Header Buton Kontrolü
             const hasNext = foundChaps.includes(currentChap + 1);
             document.getElementById("next-header-btn").style.display = (currentPage === totalPages && hasNext) ? "block" : "none";
+            
             save();
         }
 
@@ -152,8 +148,13 @@
             } else { img.style.display = "inline-block"; updateDisplay(); }
         }
 
+        function showAlert(msg) {
+            const box = document.getElementById("alert-box");
+            box.innerHTML = msg; box.style.display = "block";
+            setTimeout(() => { box.style.display = "none"; }, 3000);
+        }
+
         function toggleGap() { 
-            // Sadece Webtoon modundaysa sınıfı ekle/çıkar
             if(currentMode === 'mode-webtoon') {
                 document.getElementById("reader-container").classList.toggle("has-gap", document.getElementById("gapToggle").checked);
             }
@@ -162,14 +163,36 @@
         function changeChapter(v) { currentChap = parseInt(v); currentPage = 1; loadPages(); }
         function sayfayaGit(v) { currentPage = parseInt(v); updateDisplay(); }
         function save() { localStorage.setItem(`${mangaName}_chap`, currentChap); localStorage.setItem(`${mangaName}_page`, currentPage); }
-        function showAlert(msg) { const box = document.getElementById("alert-box"); box.innerText = msg; box.style.display = "block"; setTimeout(() => box.style.display = "none", 2000); }
         function nextChapter() { if (foundChaps.includes(currentChap + 1)) { currentChap++; currentPage = 1; save(); location.reload(); } }
 
+        // Tıklama ve Uyarı Mantığı
         document.addEventListener("click", (e) => {
             if(e.target.closest("#header") || e.target.closest("#side-panel") || currentMode === 'mode-webtoon') return;
-            if(e.clientX > window.innerWidth / 2) { if(currentPage < totalPages) { currentPage++; updateDisplay(); } }
-            else { if(currentPage > 1) { currentPage--; updateDisplay(); } }
+            
+            if(e.clientX > window.innerWidth / 2) {
+                if(currentPage < totalPages) { 
+                    currentPage++; updateDisplay(); 
+                } else {
+                    if(foundChaps.includes(currentChap + 1)) {
+                        showAlert("Bölüm Bitti! <br> Sonraki Bölüme geçmek için üstteki butonu kullanın.");
+                        document.getElementById("header").classList.add("active"); // Butonu göster
+                    } else {
+                        showAlert("Yeni Bölüm Henüz Yüklenmemiş.");
+                    }
+                }
+            } else { 
+                if(currentPage > 1) { currentPage--; updateDisplay(); } 
+            }
         });
+
+        // Webtoon için Kaydırma Uyarısı
+        window.onscroll = () => {
+            if(currentMode === 'mode-webtoon' && (window.innerHeight + window.scrollY) >= document.body.offsetHeight - 2) {
+                if(foundChaps.includes(currentChap + 1)) {
+                    showAlert("Bölüm Bitti! Üstteki butondan geçebilirsiniz.");
+                }
+            }
+        };
 
         document.getElementById("top-trigger").onmouseenter = () => document.getElementById("header").classList.add("active");
         document.getElementById("header").onmouseleave = () => document.getElementById("header").classList.remove("active");
