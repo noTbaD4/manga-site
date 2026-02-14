@@ -3,37 +3,28 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Manga Reader Pro v22</title>
+    <title>Manga Reader Pro v22.1</title>
     <style>
-        :root { --accent: #e50914; --bg: #000; }
+        :root { --accent: #e50914; --bg: #000; --panel: #141414; }
         body { margin: 0; background: var(--bg); color: white; font-family: sans-serif; overflow-x: hidden; }
         
-        /* Üst Bar */
         #header { position: fixed; top: 0; left: 0; width: 100%; height: 50px; background: rgba(0,0,0,0.95); display: flex; justify-content: center; align-items: center; gap: 10px; z-index: 1000; transform: translateY(-100%); transition: 0.3s; border-bottom: 1px solid #333; }
         #header.active { transform: translateY(0); }
         #top-trigger { position: fixed; top: 0; left: 0; width: 100%; height: 20px; z-index: 999; }
         
-        /* Yan Panel */
-        #side-panel { position: fixed; left: 0; top: 0; width: 230px; height: 100%; background: #141414; z-index: 1001; transform: translateX(-100%); transition: 0.3s; display: flex; flex-direction: column; padding: 60px 20px; gap: 15px; border-right: 2px solid var(--accent); }
+        #side-panel { position: fixed; left: 0; top: 0; width: 230px; height: 100%; background: var(--panel); z-index: 1001; transform: translateX(-100%); transition: 0.3s; display: flex; flex-direction: column; padding: 60px 20px; gap: 15px; border-right: 2px solid var(--accent); }
         #side-panel.active { transform: translateX(0); }
         #side-trigger { position: fixed; left: 0; top: 0; width: 25px; height: 100%; z-index: 1000; }
         
         #reader-container { display: block; width: 100%; text-align: center; min-height: 100vh; }
         
-        /* MODLAR */
-        .mode-single img { max-height: 100vh; max-width: 100vw; object-fit: contain; display: inline-block; }
-        
-        /* Genişlik Sığdır Fix (Patlamasın diye %95 ve max-width ekledim) */
-        .mode-wide img { width: 95% !important; max-width: 1100px !important; height: auto !important; display: block; margin: 0 auto; }
-        
+        .mode-single img { max-height: 100vh; max-width: 100vw; object-fit: contain; display: inline-block; margin-top: 5px; }
+        .mode-wide img { width: 95% !important; max-width: 1150px !important; height: auto !important; display: block; margin: 0 auto; }
         .mode-webtoon img { display: block !important; width: 100% !important; max-width: 800px !important; height: auto !important; margin: 0 auto !important; }
-        .mode-webtoon.has-gap img { margin-bottom: 12px !important; } /* Boşluk Ayarı */
+        .mode-webtoon.has-gap img { margin-bottom: 12px !important; }
 
-        /* Butonlar ve Parlama */
-        .btn { padding: 12px; background: #222; border: 1px solid #444; color: #aaa; cursor: pointer; border-radius: 6px; font-weight: bold; transition: 0.2s; }
+        .btn { padding: 12px; background: #222; border: 1px solid #444; color: #aaa; cursor: pointer; border-radius: 6px; font-weight: bold; transition: 0.2s; text-align: left; }
         .btn.selected { background: var(--accent); color: white; border-color: white; box-shadow: 0 0 10px rgba(229, 9, 20, 0.5); }
-        
-        /* Gece Modu Efekti */
         .night-mode { filter: grayscale(1) contrast(1.1); }
         
         select { background: #333; color: white; border: 1px solid #555; padding: 5px; border-radius: 4px; }
@@ -65,7 +56,7 @@
     </div>
 
     <div id="reader-container" class="mode-single">
-        <img id="mangaImage" src="">
+        <img id="mangaImage" src="" alt="Resim Yüklenemedi">
         <div id="webtoon-images"></div>
         <button id="webtoon-next-btn" onclick="nextChapter()">SONRAKİ BÖLÜM</button>
     </div>
@@ -73,7 +64,9 @@
     <script>
         const urlParams = new URLSearchParams(window.location.search);
         const mangaName = urlParams.get('manga') || "manga1";
-        const chapData = urlParams.get('chaps') ? urlParams.get('chaps').split(',') : ["chapter1-20"];
+        // URL'den gelen 'chaps' verisini güvenli oku
+        const chapsRaw = urlParams.get('chaps') || "chapter1-20";
+        const chapData = chapsRaw.split(',');
 
         let currentChapIdx = parseInt(localStorage.getItem(`${mangaName}_chapIdx`)) || 0;
         let currentPage = parseInt(localStorage.getItem(`${mangaName}_page`)) || 1;
@@ -85,10 +78,12 @@
         const cSelect = document.getElementById("chapSelect");
 
         function getChapInfo(idx) {
-            const raw = chapData[idx] || "chapter1-20";
+            // Eğer kaydedilen index dizi sınırını aşarsa sıfırla
+            if (idx >= chapData.length) idx = 0;
+            const raw = chapData[idx];
             const name = raw.split('-')[0];
             const pages = parseInt(raw.split('-')[1]) || 20;
-            return { name, pages };
+            return { name, pages, idx };
         }
 
         function setupSelectors() {
@@ -111,17 +106,19 @@
         function getPath(page) {
             let p = page.toString().padStart(2, '0');
             const info = getChapInfo(currentChapIdx);
+            // KÜÇÜK HARF ZORLAMASI (manga ve chapter için)
             return `manga/${mangaName}/${info.name}/${p}.jpg`;
         }
 
         function updateDisplay() {
             if (currentMode === 'mode-webtoon') return;
-            img.src = getPath(currentPage);
+            const path = getPath(currentPage);
+            img.src = path;
             img.onerror = () => {
                 let p = currentPage.toString().padStart(2, '0');
                 const info = getChapInfo(currentChapIdx);
                 img.src = `manga/${mangaName}/${info.name}/${p}_clean.jpg`;
-                img.onerror = null;
+                img.onerror = () => { img.alt = "Hata: Dosya bulunamadı."; };
             };
             pSelect.value = currentPage;
             window.scrollTo(0,0);
@@ -168,11 +165,7 @@
         }
 
         function toggleNight() { document.getElementById("reader-container").classList.toggle("night-mode"); }
-        function toggleGap() { 
-            if(currentMode === 'mode-webtoon') {
-                document.getElementById("reader-container").classList.toggle("has-gap", document.getElementById("gapToggle").checked);
-            }
-        }
+        function toggleGap() { setMode(currentMode); }
 
         function changeChapter(v) { 
             currentChapIdx = parseInt(v); currentPage = 1; 
