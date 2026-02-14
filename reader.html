@@ -3,10 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Manga Reader Pro v30</title>
+    <title>Manga Reader Pro v31</title>
     <style>
         :root { --accent: #e50914; --bg: #000; --panel: #141414; }
         body { margin: 0; background: var(--bg); color: white; font-family: sans-serif; overflow-x: hidden; }
+        
+        /* GECE MODU CSS (Tüm içeriğe etki eder) */
+        body.night-mode #reader-container { filter: grayscale(1) contrast(1.2); }
         
         #header { position: fixed; top: 0; left: 0; width: 100%; height: 50px; background: rgba(0,0,0,0.95); display: flex; justify-content: center; align-items: center; gap: 10px; z-index: 1000; transform: translateY(-100%); transition: 0.3s; border-bottom: 1px solid #333; }
         #header.active { transform: translateY(0); }
@@ -17,16 +20,14 @@
         #side-trigger { position: fixed; left: 0; top: 0; width: 25px; height: 100%; z-index: 1000; }
         
         #reader-container { text-align: center; min-height: 100vh; padding-top: 5px; transition: 0.3s; }
-        
-        /* GÖRSEL MODLARINDAKİ DENGELİ AYARLAR */
         #mangaImage { display: inline-block; transition: 0.2s; }
         
         .mode-single #mangaImage { max-height: 98vh; max-width: 98vw; object-fit: contain; }
         
-        /* İŞTE O DENGELİ GENİŞLETME AYARI */
+        /* DENGELİ GENİŞLİK */
         .mode-wide #mangaImage { 
             width: 98% !important; 
-            max-width: 1350px !important; /* Çok devasa olup bozulmasın diye sınır */
+            max-width: 1400px !important; 
             height: auto !important; 
             margin: 0 auto; 
         }
@@ -34,17 +35,15 @@
         .mode-webtoon img { display: block; width: 100%; max-width: 850px; margin: 0 auto; }
         .has-gap img { margin-bottom: 15px; }
 
-        .btn { padding: 12px; background: #222; border: 1px solid #444; color: #aaa; cursor: pointer; border-radius: 6px; font-weight: bold; text-align: left; }
-        .btn.selected { background: var(--accent); color: white; border-color: white; box-shadow: 0 0 10px var(--accent); }
+        .btn { padding: 12px; background: #222; border: 1px solid #444; color: #aaa; cursor: pointer; border-radius: 6px; font-weight: bold; text-align: left; border: none; }
+        .btn.selected { background: var(--accent); color: white; box-shadow: 0 0 10px var(--accent); }
         
-        .night-mode { filter: grayscale(1) contrast(1.15); }
         #alert-box { position: fixed; bottom: 20px; right: 20px; background: #222; padding: 12px 20px; border-radius: 8px; border-left: 5px solid var(--accent); display: none; z-index: 2000; }
-        
-        #next-header-btn { background: var(--accent); color: white; padding: 5px 12px; border-radius: 4px; cursor: pointer; display: none; font-weight: bold; font-size: 13px; }
+        #next-header-btn { background: var(--accent); color: white; padding: 5px 12px; border-radius: 4px; cursor: pointer; display: none; font-weight: bold; }
         select { background: #333; color: white; border: 1px solid #555; padding: 5px; border-radius: 4px; }
     </style>
 </head>
-<body>
+<body id="main-body">
 
     <div id="top-trigger"></div><div id="side-trigger"></div><div id="alert-box"></div>
 
@@ -179,7 +178,11 @@
             }
         }
 
-        function toggleNight() { document.getElementById("reader-container").classList.toggle("night-mode"); }
+        // GECE MODU TETİKLEYİCİSİ (Düzeltildi)
+        function toggleNight() {
+            document.getElementById("main-body").classList.toggle("night-mode");
+        }
+
         function toggleGap() { setMode(currentMode); }
         function changeChapter(v) { currentChap = parseInt(v); currentPage = 1; loadPages(); }
         function sayfayaGit(v) { currentPage = parseInt(v); updateDisplay(); }
