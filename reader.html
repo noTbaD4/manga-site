@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Manga Reader Pro v9</title>
+    <title>Manga Reader Pro v10</title>
     <style>
         :root { --accent: #e50914; --bg: #000; }
         body { margin: 0; background: var(--bg); color: white; font-family: sans-serif; overflow-x: hidden; }
         
-        #header { position: fixed; top: 0; left: 0; width: 100%; height: 50px; background: rgba(0,0,0,0.9); display: flex; justify-content: center; align-items: center; gap: 15px; z-index: 1000; transform: translateY(-100%); transition: 0.3s; border-bottom: 1px solid #333; }
+        #header { position: fixed; top: 0; left: 0; width: 100%; height: 50px; background: rgba(0,0,0,0.95); display: flex; justify-content: center; align-items: center; gap: 10px; z-index: 1000; transform: translateY(-100%); transition: 0.3s; border-bottom: 1px solid #333; }
         #header.active { transform: translateY(0); }
         #top-trigger { position: fixed; top: 0; left: 0; width: 100%; height: 20px; z-index: 999; }
         
@@ -24,13 +24,11 @@
         .btn { padding: 12px; background: #222; border: 1px solid #444; color: #aaa; cursor: pointer; border-radius: 6px; font-weight: bold; }
         .btn.selected { background: var(--accent); color: white; border-color: white; }
 
-        /* Bildirim ve Webtoon Butonu */
         #notify { position: fixed; bottom: 20px; right: 20px; background: #1a1a1a; padding: 15px; border-radius: 8px; border-left: 4px solid var(--accent); display: none; z-index: 2000; }
-        #webtoon-next-btn { display: none; margin: 40px auto; padding: 20px 40px; background: var(--accent); color: white; border: none; border-radius: 8px; font-size: 18px; font-weight: bold; cursor: pointer; transition: 0.3s; }
-        #webtoon-next-btn:hover { transform: scale(1.05); background: #b20710; }
+        #webtoon-next-btn { display: none; margin: 40px auto; padding: 20px 40px; background: var(--accent); color: white; border: none; border-radius: 8px; font-size: 18px; font-weight: bold; cursor: pointer; }
 
-        select { background: #333; color: white; border: 1px solid #555; padding: 5px; border-radius: 4px; }
-        .hidden { display: none !important; }
+        select { background: #333; color: white; border: 1px solid #555; padding: 5px; border-radius: 4px; font-size: 13px; }
+        .label { font-size: 12px; color: #888; margin-right: -5px; }
     </style>
 </head>
 <body>
@@ -48,8 +46,9 @@
 
     <div id="header">
         <button class="btn" style="padding: 5px 10px;" onclick="window.location.href='index.html'">🏠</button>
-        <div id="mangaTitle">Yükleniyor...</div>
+        <span class="label">B:</span>
         <select id="chapSelect" onchange="changeChapter(this.value)"></select>
+        <span class="label">S:</span>
         <select id="pageSelect" onchange="sayfayaGit(this.value)"></select>
     </div>
 
@@ -82,13 +81,32 @@
         const cSelect = document.getElementById("chapSelect");
         const nextBtn = document.getElementById("webtoon-next-btn");
 
-        // Bölüm listesi (1-20 arası)
-        for(let i=1; i<=20; i++){
-            let opt = document.createElement("option");
-            opt.value = i; opt.innerHTML = "Bölüm " + i;
-            cSelect.appendChild(opt);
+        // BÖLÜMLERİ OTOMATİK BUL (1'den başlayıp klasör var mı diye kontrol eder)
+        async function buildChapterList() {
+            cSelect.innerHTML = "";
+            let chap = 1;
+            let checkMore = true;
+            while(checkMore && chap <= 50) { // Maksimum 50 bölüm kontrolü
+                const exists = await checkResource(`manga/${mangaName}/chapter${chap}/01.jpg`) || 
+                               await checkResource(`manga/${mangaName}/chapter${chap}/01_clean.jpg`);
+                if(exists) {
+                    let opt = document.createElement("option");
+                    opt.value = chap; opt.innerHTML = chap;
+                    cSelect.appendChild(opt);
+                    chap++;
+                } else {
+                    checkMore = false;
+                }
+            }
+            cSelect.value = currentChap;
         }
-        cSelect.value = currentChap;
+
+        async function checkResource(url) {
+            try {
+                const response = await fetch(url, { method: 'HEAD' });
+                return response.ok;
+            } catch { return false; }
+        }
 
         function savePos() {
             localStorage.setItem(`${mangaName}_chap`, currentChap);
@@ -127,7 +145,7 @@
             pSelect.innerHTML = "";
             for (let i = 1; i <= totalPages; i++) {
                 let opt = document.createElement("option");
-                opt.value = i; opt.innerHTML = "S. " + i;
+                opt.value = i; opt.innerHTML = i;
                 pSelect.appendChild(opt);
             }
             pSelect.value = currentPage;
@@ -135,14 +153,31 @@
 
         function updateDisplay() {
             if (currentMode === 'mode-webtoon') return;
-            loadImg(currentPage, img);
+            loadImg(currentPage, img, (success) => {
+                if(success && !foundMaxPage) {
+                    // Sayfaları tek tek deneyerek menüyü doldur (Manga modunda)
+                    let checkPage = 1;
+                    const tempInterval = setInterval(() => {
+                        if(checkPage > 100 || foundMaxPage) { clearInterval(tempInterval); return; }
+                        let test = new Image();
+                        let p = checkPage.toString().padStart(2, '0');
+                        test.src = `manga/${mangaName}/chapter${currentChap}/${p}.jpg`;
+                        test.onerror = () => { 
+                             // Clean de dene
+                             let test2 = new Image();
+                             test2.src = `manga/${mangaName}/chapter${currentChap}/${p}_clean.jpg`;
+                             test2.onerror = () => {
+                                 if(!foundMaxPage) { totalPages = checkPage - 1; foundMaxPage = true; updatePSelector(); }
+                                 clearInterval(tempInterval);
+                             }
+                        };
+                        checkPage++;
+                    }, 50);
+                }
+            });
             pSelect.value = currentPage;
             window.scrollTo(0, 0);
-            document.getElementById("mangaTitle").innerText = `B${currentChap}`;
             savePos();
-            
-            // Son sayfa kontrolü
-            if(foundMaxPage && currentPage === totalPages) checkNextChapter();
         }
 
         function setMode(mode) {
@@ -160,13 +195,13 @@
 
             if (mode === 'mode-webtoon') {
                 img.classList.add("hidden");
+                foundMaxPage = false;
                 for (let i = 1; i <= 100; i++) {
                     let wImg = document.createElement("img");
                     loadImg(i, wImg, (success) => { 
                         if (!success) {
                             wImg.remove();
-                            if(!foundMaxPage) { totalPages = i - 1; foundMaxPage = true; updatePSelector(); }
-                            checkNextChapterWebtoon();
+                            if(!foundMaxPage) { totalPages = i - 1; foundMaxPage = true; updatePSelector(); checkNextChapterWebtoon(); }
                         } else if (i === currentPage) {
                             wImg.scrollIntoView();
                         }
@@ -179,43 +214,27 @@
             }
         }
 
-        function checkNextChapter() {
-            let test = new Image();
-            test.src = `manga/${mangaName}/chapter${currentChap + 1}/01.jpg`;
-            test.onload = () => showNotify("Sonraki bölüme geçilsin mi?", true);
-            test.onerror = () => showNotify("Bölüm bitti, son sayfadasınız.", false);
+        async function checkNextChapterWebtoon() {
+            const exists = await checkResource(`manga/${mangaName}/chapter${currentChap + 1}/01.jpg`) || 
+                           await checkResource(`manga/${mangaName}/chapter${currentChap + 1}/01_clean.jpg`);
+            if(exists) nextBtn.style.display = "block";
         }
-
-        function checkNextChapterWebtoon() {
-            let test = new Image();
-            test.src = `manga/${mangaName}/chapter${currentChap + 1}/01.jpg`;
-            test.onload = () => { nextBtn.style.display = "block"; };
-        }
-
-        function showNotify(text, hasNext) {
-            document.getElementById("notify").style.display = "block";
-            document.getElementById("notif-text").innerText = text;
-            document.getElementById("notif-actions").style.display = hasNext ? "flex" : "none";
-            if(!hasNext) setTimeout(hideNotify, 3000);
-        }
-
-        function hideNotify() { document.getElementById("notify").style.display = "none"; }
 
         function nextChapter() {
-            currentChap++; currentPage = 1; foundMaxPage = false;
+            currentChap++; currentPage = 1;
             localStorage.setItem(`${mangaName}_chap`, currentChap);
             localStorage.setItem(`${mangaName}_page`, 1);
-            location.reload(); // En temiz geçiş için sayfayı yenile
+            location.reload();
         }
 
-        function changeChapter(val) { currentChap = parseInt(val); currentPage = 1; foundMaxPage = false; setMode(currentMode); }
+        function changeChapter(val) { currentChap = parseInt(val); currentPage = 1; foundMaxPage = false; updateDisplay(); }
         function sayfayaGit(n) { currentPage = parseInt(n); updateDisplay(); }
         function toggleFullScreen() { if (!document.fullscreenElement) document.documentElement.requestFullscreen(); else document.exitFullscreen(); }
 
         document.addEventListener("click", (e) => {
             if (e.target.closest("#header") || e.target.closest("#side-panel") || e.target.closest("#notify") || currentMode === 'mode-webtoon') return;
             if (e.clientX > window.innerWidth / 2) {
-                if (foundMaxPage && currentPage >= totalPages) checkNextChapter();
+                if (foundMaxPage && currentPage >= totalPages) { /* Son sayfa uyarısı eklenebilir */ }
                 else { currentPage++; updateDisplay(); }
             } else { if (currentPage > 1) { currentPage--; updateDisplay(); } }
         });
@@ -225,6 +244,7 @@
         document.getElementById("side-trigger").onmouseenter = () => document.getElementById("side-panel").classList.add("active");
         document.getElementById("side-panel").onmouseleave = () => document.getElementById("side-panel").classList.remove("active");
 
+        buildChapterList();
         setMode(currentMode);
     </script>
 </body>
