@@ -3,24 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Manga Reader Pro v3</title>
+    <title>Manga Reader Pro v4</title>
     <style>
         :root { --accent: #e50914; }
-        body { margin: 0; background: #000; color: white; font-family: sans-serif; overflow-x: hidden; scroll-behavior: smooth; }
+        body { margin: 0; background: #000; color: white; font-family: sans-serif; overflow-x: hidden; }
         
-        /* Üst Bar */
         #header { position: fixed; top: 0; left: 0; width: 100%; height: 50px; background: rgba(0,0,0,0.9); display: flex; justify-content: center; align-items: center; gap: 20px; z-index: 1000; transform: translateY(-100%); transition: 0.3s; }
         #header.active { transform: translateY(0); }
         #top-trigger { position: fixed; top: 0; left: 0; width: 100%; height: 20px; z-index: 999; }
         
-        /* Sol Ayar Paneli */
         #side-panel { position: fixed; left: 0; top: 0; width: 220px; height: 100%; background: rgba(15, 15, 15, 0.98); z-index: 1001; transform: translateX(-100%); transition: 0.3s; display: flex; flex-direction: column; padding: 60px 20px; gap: 20px; border-right: 2px solid var(--accent); }
         #side-panel.active { transform: translateX(0); }
         #side-trigger { position: fixed; left: 0; top: 0; width: 25px; height: 100%; z-index: 1000; }
         
         #reader-container { display: block; width: 100%; text-align: center; min-height: 100vh; }
-        
-        /* Modlar */
         .mode-single img { max-height: 100vh; max-width: 100vw; object-fit: contain; display: inline-block; }
         .mode-wide img { max-width: 100%; height: auto; display: inline-block; }
         .mode-webtoon img { display: block !important; width: 100% !important; max-width: 800px !important; height: auto !important; margin: 0 auto !important; }
@@ -44,7 +40,7 @@
     </div>
 
     <div id="side-panel">
-        <button class="btn" onclick="setMode('mode-single')">Tam Ekrana Sığdır</button>
+        <button class="btn" onclick="setMode('mode-single')">Ekrana Sığdır</button>
         <button class="btn" onclick="setMode('mode-wide')">Genişlik Sığdır</button>
         <button class="btn" onclick="setMode('mode-webtoon')">Webtoon (Dikey)</button>
     </div>
@@ -65,21 +61,26 @@
         const webtoonBox = document.getElementById("webtoon-images");
         const select = document.getElementById("pageSelect");
 
-        // Sayfa Listesi
         for (let i = 1; i <= totalPages; i++) {
             let opt = document.createElement("option");
             opt.value = i; opt.innerHTML = i;
             select.appendChild(opt);
         }
 
-        function loadImg(page, target) {
+        function loadImg(page, target, callback) {
             let p = page.toString().padStart(2, '0');
             let pathClean = `manga/${mangaName}/chapter1/${p}_clean.jpg`;
             let pathNormal = `manga/${mangaName}/chapter1/${p}.jpg`;
             
             let t = new Image();
-            t.onload = () => { target.src = pathClean; };
-            t.onerror = () => { target.src = pathNormal; };
+            t.onload = () => { 
+                target.src = pathClean; 
+                if(callback) callback();
+            };
+            t.onerror = () => { 
+                target.src = pathNormal; 
+                if(callback) callback();
+            };
             t.src = pathClean;
         }
 
@@ -92,12 +93,13 @@
         }
 
         function setMode(mode) {
-            // WEBTOON'DAN NORMAL MODA GEÇERKEN: Ekrandaki sayfayı bul
+            // WEBTOON'DAN ÇIKARKEN: Ekranın en tepesindeki resmi bul
             if (currentMode === 'mode-webtoon' && mode !== 'mode-webtoon') {
                 const images = webtoonBox.querySelectorAll('img');
                 for (let i = 0; i < images.length; i++) {
                     const rect = images[i].getBoundingClientRect();
-                    if (rect.top >= -300 && rect.top <= window.innerHeight / 2) {
+                    // Üst sınıra en yakın resmi yakala
+                    if (rect.bottom > 50) {
                         currentPage = i + 1;
                         break;
                     }
@@ -112,21 +114,22 @@
                 document.getElementById("pageSelectorArea").classList.add("hidden");
                 webtoonBox.innerHTML = "";
                 
+                let targetScrollY = 0;
+
                 for (let i = 1; i <= totalPages; i++) {
                     let wImg = document.createElement("img");
                     wImg.id = "webpage-" + i;
-                    loadImg(i, wImg);
-                    webtoonBox.appendChild(wImg);
                     
-                    // NORMALDEN WEBTOONA GEÇERKEN: Kaldığımız yere kaydır
-                    if (i === currentPage) {
-                        wImg.onload = () => {
-                            setTimeout(() => {
-                                wImg.scrollIntoView({ behavior: "smooth", block: "start" });
-                            }, 100);
-                        };
-                    }
+                    // Resimler yüklendikçe kontrol et
+                    loadImg(i, wImg, () => {
+                        if (i === currentPage) {
+                            // Işınlanma
+                            wImg.scrollIntoView({ behavior: "auto", block: "start" });
+                        }
+                    });
+                    webtoonBox.appendChild(wImg);
                 }
+                document.getElementById("mangaTitle").innerText = mangaName.toUpperCase() + " (Webtoon)";
             } else {
                 img.classList.remove("hidden");
                 document.getElementById("pageSelectorArea").classList.remove("hidden");
@@ -142,6 +145,7 @@
             else { if (currentPage > 1) { currentPage--; updateDisplay(); } }
         });
 
+        // Hover kontrolleri
         document.getElementById("top-trigger").onmouseenter = () => document.getElementById("header").classList.add("active");
         document.getElementById("header").onmouseleave = () => document.getElementById("header").classList.remove("active");
         document.getElementById("side-trigger").onmouseenter = () => document.getElementById("side-panel").classList.add("active");
