@@ -6,12 +6,12 @@
     <title>Manga Reader Pro</title>
     <style>
         :root { --accent: #e50914; }
-        body { margin: 0; background: #000; color: white; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; overflow-x: hidden; }
+        body { margin: 0; background: #000; color: white; font-family: sans-serif; overflow-x: hidden; }
 
         /* Üst Bar */
         #header {
             position: fixed; top: 0; left: 0; width: 100%; height: 50px;
-            background: rgba(0,0,0,0.85); display: flex; justify-content: center;
+            background: rgba(0,0,0,0.9); display: flex; justify-content: center;
             align-items: center; gap: 20px; z-index: 1000;
             transform: translateY(-100%); transition: 0.3s;
         }
@@ -29,30 +29,37 @@
         #side-panel.active { transform: translateX(0); }
         #side-trigger { position: fixed; left: 0; top: 0; width: 25px; height: 100%; z-index: 1000; }
 
-        /* Okuyucu Konteyner */
-        #reader-container { display: flex; flex-direction: column; align-items: center; width: 100%; }
+        /* OKUYUCU ALANI - ANA YAPI */
+        #reader-container { 
+            display: block !important; /* Flex'i tamamen devre dışı bıraktık */
+            width: 100%; 
+            margin: 0 auto;
+            text-align: center;
+        }
         
-        /* Mod Ayarları */
+        /* Tek Sayfa Modları */
+        .mode-single img, .mode-wide img { 
+            display: inline-block; 
+            margin: 0 auto;
+        }
         .mode-single img { max-height: 100vh; max-width: 100vw; object-fit: contain; }
         .mode-wide img { max-width: 100%; height: auto; }
         
-        /* Webtoon Fix: Alt alta ve tek sütun */
-        .mode-webtoon { display: block !important; width: 100%; text-align: center; }
+        /* WEBTOON MODU - ZORUNLU ALT ALTA */
         .mode-webtoon img { 
-            display: block; 
-            margin: 0 auto; 
-            max-width: 800px; 
-            width: 100%; 
-            height: auto; 
-            border: none;
+            display: block !important; /* Yan yana gelmesini engeller */
+            width: 100% !important; 
+            max-width: 800px !important; 
+            height: auto !important;
+            margin: 0 auto !important; /* Ortalar */
+            padding: 0 !important;
+            border: none !important;
         }
 
-        .btn { padding: 10px; background: var(--accent); border: none; color: white; cursor: pointer; border-radius: 4px; font-weight: bold; transition: 0.2s; }
+        .btn { padding: 10px; background: var(--accent); border: none; color: white; cursor: pointer; border-radius: 4px; font-weight: bold; }
         .btn:hover { background: #b20710; }
-        .panel-label { font-size: 12px; color: #888; margin-bottom: -15px; text-transform: uppercase; letter-spacing: 1px; }
-        select { background: #333; color: white; border: 1px solid #555; padding: 5px; border-radius: 4px; }
-        
-        /* Gizleme Sınıfı */
+        .panel-label { font-size: 11px; color: #888; text-transform: uppercase; }
+        select { background: #333; color: white; border: 1px solid #555; padding: 5px; }
         .hidden { display: none !important; }
     </style>
 </head>
@@ -62,7 +69,7 @@
     <div id="side-trigger"></div>
 
     <div id="header">
-        <button class="btn" onclick="window.location.href='index.html'">Kütüphane</button>
+        <button class="btn" onclick="window.location.href='index.html'">Geri</button>
         <div id="mangaTitle">Yükleniyor...</div>
         <div id="pageSelectorArea">
             Sayfa: <select id="pageSelect" onchange="sayfayaGit(this.value)"></select>
@@ -74,13 +81,10 @@
         <button class="btn" onclick="setMode('mode-single')">Tam Ekrana Sığdır</button>
         <button class="btn" onclick="setMode('mode-wide')">Genişlik Sığdır</button>
         <button class="btn" onclick="setMode('mode-webtoon')">Webtoon (Dikey)</button>
-        <hr style="width:100%; border:0; border-top:1px solid #333; margin: 10px 0;">
-        <div class="panel-label">Bilgi</div>
-        <p style="font-size:11px; color:#666">Webtoon modunda sayfalar alt alta yüklenir. Diğer modlarda sağ/sol tıklama ile geçiş yapabilirsin.</p>
     </div>
 
     <div id="reader-container" class="mode-single">
-        <img id="mangaImage" src="" alt="Yükleniyor...">
+        <img id="mangaImage" src="">
         <div id="webtoon-images"></div>
     </div>
 
@@ -103,25 +107,21 @@
             select.appendChild(opt);
         }
 
-        function getImagePath(page) {
+        function loadImg(page, target) {
             let p = page.toString().padStart(2, '0');
-            return `manga/${mangaName}/chapter1/${p}`;
-        }
-
-        function loadSingleImage(page, targetImg) {
-            let base = getImagePath(page);
+            let base = `manga/${mangaName}/chapter1/${p}`;
             let clean = base + "_clean.jpg";
             let normal = base + ".jpg";
             
-            let test = new Image();
-            test.onload = () => targetImg.src = clean;
-            test.onerror = () => targetImg.src = normal;
-            test.src = clean;
+            let t = new Image();
+            t.onload = () => target.src = clean;
+            t.onerror = () => target.src = normal;
+            t.src = clean;
         }
 
         function updateDisplay() {
             if (currentMode === 'mode-webtoon') return;
-            loadSingleImage(currentPage, img);
+            loadImg(currentPage, img);
             select.value = currentPage;
             window.scrollTo(0, 0);
             document.getElementById("mangaTitle").innerText = mangaName.toUpperCase() + " - " + currentPage;
@@ -134,34 +134,31 @@
             
             if (mode === 'mode-webtoon') {
                 img.classList.add("hidden");
-                pageSelectorArea.classList.add("hidden"); // Sayfa seçiciyi gizle
+                pageSelectorArea.classList.add("hidden");
                 document.getElementById("mangaTitle").innerText = mangaName.toUpperCase() + " (Webtoon)";
                 
+                // Tüm sayfaları alt alta yükle
                 for (let i = 1; i <= totalPages; i++) {
                     let wImg = document.createElement("img");
-                    loadSingleImage(i, wImg);
+                    loadImg(i, wImg);
                     webtoonBox.appendChild(wImg);
                 }
             } else {
                 img.classList.remove("hidden");
-                pageSelectorArea.classList.remove("hidden"); // Sayfa seçiciyi göster
+                pageSelectorArea.classList.remove("hidden");
                 updateDisplay();
             }
         }
 
         function sayfayaGit(n) { currentPage = parseInt(n); updateDisplay(); }
 
-        // Tıklama
+        // Tıklama & Klavye
         document.addEventListener("click", (e) => {
             if (e.target.closest("#header") || e.target.closest("#side-panel") || currentMode === 'mode-webtoon') return;
-            if (e.clientX > window.innerWidth / 2) {
-                if (currentPage < totalPages) { currentPage++; updateDisplay(); }
-            } else {
-                if (currentPage > 1) { currentPage--; updateDisplay(); }
-            }
+            if (e.clientX > window.innerWidth / 2) { if (currentPage < totalPages) { currentPage++; updateDisplay(); } }
+            else { if (currentPage > 1) { currentPage--; updateDisplay(); } }
         });
 
-        // Klavye
         document.addEventListener("keydown", (e) => {
             if (currentMode === 'mode-webtoon') return;
             if (e.key === "ArrowRight") { if (currentPage < totalPages) { currentPage++; updateDisplay(); } }
@@ -169,14 +166,10 @@
         });
 
         // Hover
-        const head = document.getElementById("header");
-        const panel = document.getElementById("side-panel");
-        
-        document.getElementById("top-trigger").onmouseenter = () => head.classList.add("active");
-        head.onmouseleave = () => head.classList.remove("active");
-        
-        document.getElementById("side-trigger").onmouseenter = () => panel.classList.add("active");
-        panel.onmouseleave = () => panel.classList.remove("active");
+        document.getElementById("top-trigger").onmouseenter = () => document.getElementById("header").classList.add("active");
+        document.getElementById("header").onmouseleave = () => document.getElementById("header").classList.remove("active");
+        document.getElementById("side-trigger").onmouseenter = () => document.getElementById("side-panel").classList.add("active");
+        document.getElementById("side-panel").onmouseleave = () => document.getElementById("side-panel").classList.remove("active");
 
         updateDisplay();
     </script>
